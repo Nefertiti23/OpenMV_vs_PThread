@@ -1,0 +1,23 @@
+Your objective is to evaluate the performance differences between low-level and high-level
+concurrency models using the Kaggle Huge Dataset of Images for Super Resolution.
+
+You will design two separate parallel processing programs in C/C++ :
+one utilizing POSIX Threads (pthread.h) and the other using OpenMP (omp.h) to apply a spatial
+processing filter (such as a matrix convolution kernel) across the dataset's uniform 500x500
+pixel images.
+
+Your final submission must include a performance report analyzing execution runtimes,
+thread-creation overhead, and CPU core utilization profiles to definitively demonstrate which
+multithreading framework handles large-scale batch image manipulation more efficiently under
+different core allocations.
+
+https://opencv.org/image-filtering-using-convolution-in-opencv/#h-blurring-an-image
+
+OPENMP
+execution runtime [no threads defined]: 171984 ms
+sequential time (1 thread) [OMP_NUM_THREADS=1]: 435949 ms
+parallel time (4 threads) [OMP_NUM_THREADS=4]: 121995
+
+
+PTHREAD
+Total Workload Execution Runtime (1 runs): 122493 ms
