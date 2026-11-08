@@ -13,8 +13,8 @@ void blur_the_image(const std::string& input_path, const std::string& output_fol
     }
 
     cv::Mat blur_img;
-    // {7, 7} kernel, with each cell containing the value 1/49
-    cv::blur(img, blur_img, cv::Size(7, 7));
+    // {7, 7} kernel, with each cell containing the value 1/25
+    cv::GaussianBlur(img, blur_img, cv::Size(5, 5), 0);;
 
     std::string output_path = output_folder + "/" + std::filesystem::path(input_path).filename().string();
 
@@ -24,8 +24,8 @@ void blur_the_image(const std::string& input_path, const std::string& output_fol
 }
 
 int main() {
-    std::string input_folder = "./big_data/train";
-    std::string output_folder = "output_big_data";
+    std::string input_folder = "../big_data/train";
+    std::string output_folder = "../output_big_data";
 
     std::filesystem::create_directories(output_folder);
 
@@ -40,9 +40,21 @@ int main() {
     auto start_time = std::chrono::high_resolution_clock::now();
 
     // Parallel processing using OpenMP
-    #pragma omp parallel for
-    for (size_t i = 0; i < image_files.size(); ++i) {
+    // #pragma omp parallel for
+    // for (size_t i = 0; i < image_files.size(); ++i) {
+    //     blur_the_image(image_files[i], output_folder);
+    // }
+
+    int processed_count = 0;
+    #pragma omp parallel for schedule(static)
+    for (int i = 0; i < image_files.size(); ++i) {
         blur_the_image(image_files[i], output_folder);
+
+        // The Mutex/Critical section combined inside the Simple loop
+        #pragma omp critical
+        {
+            processed_count++;
+        }
     }
 
     auto end_time = std::chrono::high_resolution_clock::now();
