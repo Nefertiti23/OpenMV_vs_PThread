@@ -1,8 +1,7 @@
-// pthreads_conv.cpp - POSIX threads, three versions:
-//   simple   : images split into fixed blocks, one block per thread, NO locks (each thread keeps private totals)
-//   mutex    : threads take the next image from a shared counter and add to shared totals, protected by a MUTEX
-//   combined : simple + mutex together: threads take images from a mutex-protected counter,
-//              keep private totals while working, and merge them once at the end under the mutex
+// Pthreads version with three ways to divide the work:
+//   simple   : fixed blocks and private totals
+//   mutex    : shared work counter and shared totals protected by a mutex
+//   combined : shared work counter with private totals merged at the end
 // usage: pth.exe <dataset_folder> <threads> <runs> <simple|mutex|combined> <num_images>
 //   num_images = 0 means "use every image"
 #include <pthread.h>
@@ -18,7 +17,7 @@ struct Ctx {
 };
 struct Arg { Ctx* c; int id; };
 
-// ---- version 1: simple (no synchronization while working) ----
+// Fixed block per thread. No locking is needed while processing.
 static void* worker_simple(void* p) {
     Arg* a = (Arg*)p; Ctx* c = a->c;
     int lo = (int)((long long)a->id * c->n / c->T);
@@ -27,27 +26,24 @@ static void* worker_simple(void* p) {
     return nullptr;
 }
 
-// ---- version 2: mutex ----
+// Each thread takes the next available image.
 static void* worker_mutex(void* p) {
     Ctx* c = ((Arg*)p)->c;
     for (;;) {
         pthread_mutex_lock(&c->m);
-        int i = c->next++;                    // shared work counter
+        int i = c->next++;
         pthread_mutex_unlock(&c->m);
         if (i >= c->n) break;
         Acc a;
         process_file((*c->files)[i], a);
         pthread_mutex_lock(&c->m);
-        acc_add(c->total, a);                 // shared result
+        acc_add(c->total, a);
         pthread_mutex_unlock(&c->m);
     }
     return nullptr;
 }
 
-// ---- version 3: combined (simple + mutex) ----
-// Work is handed out dynamically through the mutex-protected counter (mutex part),
-// but every thread keeps PRIVATE totals while working (simple part) and
-// takes the mutex only ONCE at the end to merge them into the shared total.
+// Work is shared, but each thread keeps its own totals until the end.
 static void* worker_combined(void* p) {
     Ctx* c = ((Arg*)p)->c;
     Acc mine;
@@ -56,10 +52,10 @@ static void* worker_combined(void* p) {
         int i = c->next++;
         pthread_mutex_unlock(&c->m);
         if (i >= c->n) break;
-        process_file((*c->files)[i], mine);   // private, no locking
+        process_file((*c->files)[i], mine);
     }
     pthread_mutex_lock(&c->m);
-    acc_add(c->total, mine);                  // one locked merge per thread
+    acc_add(c->total, mine);
     pthread_mutex_unlock(&c->m);
     return nullptr;
 }
@@ -100,7 +96,7 @@ int main(int argc, char** argv) {
         pthread_mutex_destroy(&c.m);
     }
 
-    // thread-creation overhead: create + join T empty threads, repeated 1000 times
+    // Measure the cost of creating and joining threads.
     const int REP = 1000;
     std::vector<pthread_t> th(T);
     double t0 = now_ms();

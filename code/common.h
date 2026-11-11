@@ -1,5 +1,5 @@
-// common.h - shared by all programs (serial, Pthreads, OpenMP)
-// Pipeline for every image:  load PNG -> grayscale -> resize to 500x500 -> 5x5 Gaussian blur -> checksum
+// Shared image-processing code used by all three programs.
+// Each image is loaded, converted to grayscale, resized, blurred, and checksummed.
 #pragma once
 #include <cstdio>
 #include <cstdint>
@@ -21,8 +21,8 @@ inline double now_ms() {
     return duration<double, std::milli>(steady_clock::now().time_since_epoch()).count();
 }
 
-// Find all .png files under root (sub-folders included), sort them, then pick maxN of them
-// spread evenly over the whole list (so a small batch is still a representative sample).
+
+// Choose a spread-out subset when maxN is smaller than the number of files.
 // maxN <= 0 means "use every image".
 inline std::vector<std::string> list_pngs(const std::string& root, int maxN) {
     std::vector<std::string> all;
@@ -42,7 +42,7 @@ inline std::vector<std::string> list_pngs(const std::string& root, int maxN) {
     return pick;
 }
 
-// Per-thread accumulator of results and timings
+// Results and timing totals for a group of images.
 struct Acc {
     uint64_t cs = 0;        // sum of per-image checksums (order independent)
     double load_ms = 0;     // time spent reading/decoding/grayscale/resizing (summed over images)
@@ -53,7 +53,7 @@ inline void acc_add(Acc& a, const Acc& b) {
     a.cs += b.cs; a.load_ms += b.load_ms; a.blur_ms += b.blur_ms; a.ok += b.ok; a.failed += b.failed;
 }
 
-// Box (area-average) resize of a grayscale image to SZ x SZ
+// Resize using area averaging.
 inline void resize_box(const uint8_t* src, int w, int h, uint8_t* dst) {
     for (int y = 0; y < SZ; ++y) {
         long long y0 = (long long)y * h / SZ;
@@ -69,7 +69,7 @@ inline void resize_box(const uint8_t* src, int w, int h, uint8_t* dst) {
     }
 }
 
-// STAGE 1 (I/O + preparation): file -> 500x500 grayscale. Returns false if the file can't be read.
+// Load an image and prepare its grayscale 500x500 version.
 inline bool load_stage(const std::string& path, uint8_t* out500, Acc& acc) {
     double t0 = now_ms();
     int w, h, c;
@@ -81,7 +81,7 @@ inline bool load_stage(const std::string& path, uint8_t* out500, Acc& acc) {
     return true;
 }
 
-// 5x5 Gaussian blur, kernel [1 4 6 4 1] x [1 4 6 4 1] / 256, clamped borders
+// Apply a 5x5 Gaussian blur with clamped borders.
 inline void blur5x5(const uint8_t* in, uint8_t* out) {
     static const int K[5] = { 1, 4, 6, 4, 1 };
     for (int y = 0; y < SZ; ++y) {
@@ -99,8 +99,7 @@ inline void blur5x5(const uint8_t* in, uint8_t* out) {
     }
 }
 
-// STAGE 2 (compute): blur the 500x500 image and add its checksum to acc.
-// If keep_out != nullptr the blurred image is copied there (used only for the sample picture).
+// Blur an image, update the checksum, and optionally keep the output.
 inline void blur_stage(const uint8_t* in500, Acc& acc, uint8_t* keep_out = nullptr) {
     double t0 = now_ms();
     std::vector<uint8_t> out(SZ * SZ);
@@ -113,13 +112,13 @@ inline void blur_stage(const uint8_t* in500, Acc& acc, uint8_t* keep_out = nullp
     acc.blur_ms += now_ms() - t0;
 }
 
-// Both stages in one call
+// Run both processing stages for one file.
 inline void process_file(const std::string& path, Acc& acc) {
     std::vector<uint8_t> img(SZ * SZ);
     if (load_stage(path, img.data(), acc)) blur_stage(img.data(), acc);
 }
 
-// CSV output (same columns in every program so results can be merged)
+// CSV output shared by all programs.
 inline void print_header() {
     printf("impl,variant,threads,run,images,failed,total_ms,images_per_sec,load_cpu_ms,blur_cpu_ms,checksum\n");
     fflush(stdout);
