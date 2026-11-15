@@ -1,0 +1,5 @@
+variant must be simple, mutex or combined
+variant must be simple, mutex or combined
+found 10000 images to process
+OpenMP chose 8 threads
+OVERHEAD openmp: 96.43 microseconds per parallel region of 8 threads

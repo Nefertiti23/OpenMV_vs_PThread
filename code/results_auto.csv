@@ -1,0 +1,4 @@
+impl,variant,threads,run,images,failed,total_ms,images_per_sec,load_cpu_ms,blur_cpu_ms,checksum
+openmp,mutex,8,1,10000,0,45438.00,220.08,135010.4,227719.8,36839459217600
+openmp,mutex,8,2,10000,0,41691.44,239.86,120156.6,212985.1,36839459217600
+openmp,mutex,8,3,10000,0,41223.85,242.58,117719.9,211751.2,36839459217600

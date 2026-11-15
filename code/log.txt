@@ -1,0 +1,20 @@
+found 10000 images to process
+found 10000 images to process
+OVERHEAD pthreads: 429.74 microseconds to create+join 4 threads
+found 10000 images to process
+OVERHEAD pthreads: 437.09 microseconds to create+join 4 threads
+found 10000 images to process
+OVERHEAD pthreads: 433.11 microseconds to create+join 4 threads
+found 10000 images to process
+OVERHEAD pthreads: 424.55 microseconds to create+join 4 threads
+found 10000 images to process
+OVERHEAD pthreads: 422.85 microseconds to create+join 4 threads
+found 10000 images to process
+OVERHEAD openmp: 80.42 microseconds per parallel region of 4 threads
+found 10000 images to process
+OVERHEAD openmp: 84.60 microseconds per parallel region of 4 threads
+found 10000 images to process
+^Cfound 10000 images to process
+OVERHEAD openmp: 88.29 microseconds per parallel region of 4 threads
+found 10000 images to process
+OVERHEAD pthreads: 678.84 microseconds to create+join 8 threads
